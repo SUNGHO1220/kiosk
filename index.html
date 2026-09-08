@@ -211,6 +211,79 @@
     transform: translateX(-50%) translateY(0);
   }
 
+  /* ---------- step bar ---------- */
+
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 28px;
+    background: var(--paper-tint);
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .step-bar__item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  .step-bar__num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--line);
+    color: var(--paper);
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .step-bar__label {
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .step-bar__arrow {
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .step-bar__item.is-done {
+    color: var(--ink-soft);
+  }
+
+  .step-bar__item.is-done .step-bar__num {
+    background: var(--cta);
+    color: var(--paper);
+  }
+
+  .step-bar__item.is-active {
+    color: var(--ink);
+  }
+
+  .step-bar__item.is-active .step-bar__num {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  .step-bar__item.is-active .step-bar__label {
+    font-family: 'Do Hyeon', 'Malgun Gothic', sans-serif;
+  }
+
+  @media (max-width: 560px) {
+    .step-bar { padding: 8px 16px; gap: 6px; }
+    .step-bar__label { font-size: 0.74rem; }
+  }
+
   /* ---------- body layout ---------- */
 
   .kiosk__body {
@@ -862,6 +935,31 @@
   .bill-btn span { font-size: 0.92rem; }
   .bill-btn small { font-size: 0.7rem; color: var(--ink-faint); }
 
+  .bill-btn.is-suggested {
+    border-style: solid;
+    border-color: var(--gold);
+    background: var(--gold-soft);
+    box-shadow: 0 0 0 3px rgba(200, 145, 46, 0.28);
+  }
+
+  .bill-btn.is-suggested small {
+    color: var(--toast);
+  }
+
+  .cash-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--gold-soft);
+    color: var(--ink);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 0.86rem;
+    margin: -6px 0 14px;
+  }
+
+  .cash-hint svg { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; }
+
   .cash-actions {
     display: flex;
     gap: 10px;
@@ -1119,6 +1217,14 @@
       <path d="M6 10a6 6 0 0 1 12 0c0 4.2 1.5 5.5 1.5 5.5h-15S6 14.2 6 10Z"/>
       <path d="M10 18.5a2 2 0 0 0 4 0"/>
     </symbol>
+    <symbol id="icon-speaker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/>
+      <path d="M15.5 9.2a4 4 0 0 1 0 5.6M18 7a7.5 7.5 0 0 1 0 10"/>
+    </symbol>
+    <symbol id="icon-speaker-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/>
+      <path d="M15.5 10l4 4M19.5 10l-4 4"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -1138,11 +1244,32 @@
           <button type="button" data-order="dine" class="is-active"><svg><use href="#icon-store"/></svg>매장</button>
           <button type="button" data-order="take"><svg><use href="#icon-bag"/></svg>포장</button>
         </div>
+        <button type="button" class="help-btn" id="voice-toggle" aria-label="음성 안내 끄기" aria-pressed="true">
+          <svg><use href="#icon-speaker"/></svg>음성 안내
+        </button>
         <button type="button" class="help-btn" id="help-btn" aria-label="직원 호출">
           <svg><use href="#icon-bell"/></svg>직원 호출
         </button>
       </div>
     </header>
+
+    <nav class="step-bar" id="step-bar" aria-label="주문 진행 단계">
+      <div class="step-bar__item" data-step="1">
+        <span class="step-bar__num num">1</span><span class="step-bar__label">메뉴 고르기</span>
+      </div>
+      <span class="step-bar__arrow" aria-hidden="true">›</span>
+      <div class="step-bar__item" data-step="2">
+        <span class="step-bar__num num">2</span><span class="step-bar__label">장바구니 확인</span>
+      </div>
+      <span class="step-bar__arrow" aria-hidden="true">›</span>
+      <div class="step-bar__item" data-step="3">
+        <span class="step-bar__num num">3</span><span class="step-bar__label">결제하기</span>
+      </div>
+      <span class="step-bar__arrow" aria-hidden="true">›</span>
+      <div class="step-bar__item" data-step="4">
+        <span class="step-bar__num num">4</span><span class="step-bar__label">픽업 대기</span>
+      </div>
+    </nav>
 
     <div class="kiosk__body">
       <nav class="categories" id="categories" aria-label="메뉴 카테고리"></nav>
@@ -1271,6 +1398,7 @@
     document.getElementById("phone-pay-btn").addEventListener("click", function () {
       pendingEl.hidden = true;
       doneEl.hidden = false;
+      speak("결제가 완료되었습니다");
     });
   }
 
@@ -1290,22 +1418,42 @@
     { id: "cappuccino", name: "카푸치노", category: "coffee", icon: "icon-latte", price: 4200, temp: "both", iceSurcharge: 500 },
     { id: "caramel-macchiato", name: "카라멜마키아토", category: "coffee", icon: "icon-latte", price: 4800, temp: "both", iceSurcharge: 500 },
     { id: "cold-brew", name: "콜드브루", category: "coffee", icon: "icon-cup-ice", price: 4300, temp: "ice" },
+    { id: "cafe-mocha", name: "카페모카", category: "coffee", icon: "icon-latte", price: 4700, temp: "both", iceSurcharge: 500 },
+    { id: "hazelnut-latte", name: "헤이즐넛라떼", category: "coffee", icon: "icon-latte", price: 4600, temp: "both", iceSurcharge: 500 },
+    { id: "cold-brew-latte", name: "콜드브루라떼", category: "coffee", icon: "icon-cup-ice", price: 4800, temp: "ice" },
+    { id: "vienna-coffee", name: "아인슈페너", category: "coffee", icon: "icon-cup-hot", price: 5200, temp: "hot" },
+    { id: "espresso", name: "에스프레소", category: "coffee", icon: "icon-cup-hot", price: 2500, temp: "hot" },
 
     { id: "choco-latte", name: "초코라떼", category: "drink", icon: "icon-latte", price: 4500, temp: "both", iceSurcharge: 500 },
     { id: "strawberry-smoothie", name: "딸기스무디", category: "drink", icon: "icon-smoothie", price: 5000, temp: "ice" },
     { id: "mango-smoothie", name: "망고스무디", category: "drink", icon: "icon-smoothie", price: 5200, temp: "ice" },
     { id: "grapefruit-ade", name: "자몽에이드", category: "drink", icon: "icon-ade", price: 4800, temp: "ice" },
     { id: "lemonade", name: "레모네이드", category: "drink", icon: "icon-ade", price: 4500, temp: "ice" },
+    { id: "plum-ade", name: "자두에이드", category: "drink", icon: "icon-ade", price: 4800, temp: "ice" },
+    { id: "blue-lemon-ade", name: "블루레몬에이드", category: "drink", icon: "icon-ade", price: 4800, temp: "ice" },
+    { id: "banana-smoothie", name: "바나나스무디", category: "drink", icon: "icon-smoothie", price: 5000, temp: "ice" },
+    { id: "choco-smoothie", name: "초코스무디", category: "drink", icon: "icon-smoothie", price: 5200, temp: "ice" },
+    { id: "milk-tea", name: "밀크티", category: "drink", icon: "icon-latte", price: 4500, temp: "both", iceSurcharge: 500 },
 
     { id: "chamomile", name: "캐모마일티", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
     { id: "yuzu-tea", name: "유자차", category: "tea", icon: "icon-tea", price: 4200, temp: "both", iceSurcharge: 500 },
     { id: "earl-grey", name: "얼그레이", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
+    { id: "peppermint-tea", name: "페퍼민트티", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
+    { id: "rooibos-tea", name: "루이보스티", category: "tea", icon: "icon-tea", price: 4200, temp: "hot" },
+    { id: "jasmine-tea", name: "자스민티", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
+    { id: "hibiscus-tea", name: "히비스커스티", category: "tea", icon: "icon-tea", price: 4300, temp: "both", iceSurcharge: 500 },
+    { id: "oolong-tea", name: "우롱차", category: "tea", icon: "icon-tea", price: 4000, temp: "both", iceSurcharge: 500 },
 
     { id: "croissant", name: "크루아상", category: "dessert", icon: "icon-pastry", price: 3500, temp: null },
     { id: "choco-muffin", name: "초코머핀", category: "dessert", icon: "icon-muffin", price: 3800, temp: null },
     { id: "cheesecake", name: "치즈케이크", category: "dessert", icon: "icon-cake", price: 5500, temp: null },
     { id: "macaron", name: "마카롱 (2입)", category: "dessert", icon: "icon-macaron", price: 4000, temp: null },
-    { id: "waffle", name: "와플", category: "dessert", icon: "icon-waffle", price: 5000, temp: null }
+    { id: "waffle", name: "와플", category: "dessert", icon: "icon-waffle", price: 5000, temp: null },
+    { id: "tiramisu", name: "티라미수", category: "dessert", icon: "icon-cake", price: 6000, temp: null },
+    { id: "choco-brownie", name: "초코브라우니", category: "dessert", icon: "icon-muffin", price: 4200, temp: null },
+    { id: "scone", name: "스콘", category: "dessert", icon: "icon-pastry", price: 3500, temp: null },
+    { id: "bagel", name: "베이글", category: "dessert", icon: "icon-pastry", price: 3800, temp: null },
+    { id: "croffle", name: "크로플", category: "dessert", icon: "icon-waffle", price: 5300, temp: null }
   ];
 
   var CATEGORY_TINT = { coffee: "gold", drink: "sage", tea: "plum", dessert: "toast" };
@@ -1326,6 +1474,8 @@
   var state = {
     category: "all",
     orderType: "dine",
+    voiceOn: true,
+    currentStep: 1,
     receiptChoice: "yes", // 'yes' | 'no'
     cardTemp: {},        // id -> 'hot' | 'ice'
     cardSize: {},        // id -> 'R' | 'L'
@@ -1379,6 +1529,39 @@
     return parts.join(" · ");
   }
 
+  // ---------- voice guidance ----------
+  // Reads key moments aloud with the browser's own speech synthesis —
+  // no external service, so it degrades silently where unsupported.
+
+  function speak(text) {
+    if (!state.voiceOn) return;
+    if (!("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ko-KR";
+      utter.rate = 0.95;
+      window.speechSynthesis.speak(utter);
+    } catch (err) { /* speech synthesis unavailable — stay silent */ }
+  }
+
+  // ---------- step indicator ----------
+  // Steps track the flow loosely rather than strict pages: "메뉴 고르기"
+  // while the cart is empty, "장바구니 확인" once something is in it,
+  // "결제하기" while the checkout modal is open, "픽업 대기" after payment.
+
+  var stepBar = document.getElementById("step-bar");
+
+  function setStep(n) {
+    state.currentStep = n;
+    Array.prototype.forEach.call(stepBar.children, function (el) {
+      if (!el.dataset.step) return;
+      var s = parseInt(el.dataset.step, 10);
+      el.classList.toggle("is-active", s === n);
+      el.classList.toggle("is-done", s < n);
+    });
+  }
+
   // ---------- category rail ----------
 
   var categoriesEl = document.getElementById("categories");
@@ -1392,6 +1575,7 @@
       state.category = cat.id;
       renderCategories();
       renderMenu();
+      speak(cat.label + " 메뉴");
     });
     categoriesEl.appendChild(btn);
   });
@@ -1551,6 +1735,9 @@
       };
       addToCart(item, opts, state.cardQty[id]);
 
+      var tempWord = opts.temp === "ice" ? "아이스 " : (opts.temp === "hot" ? "따뜻한 " : "");
+      speak(tempWord + item.name + " 담았습니다");
+
       var btn = e.target.closest(".add-btn");
       var original = btn.textContent;
       btn.textContent = "담았어요 ✓";
@@ -1663,6 +1850,10 @@
     barCount.textContent = count;
     barTotal.textContent = won(total);
     payBtn.disabled = state.cart.length === 0;
+
+    if (!modalVeil.classList.contains("is-open")) {
+      setStep(state.cart.length ? 2 : 1);
+    }
   }
 
   cartList.addEventListener("click", function (e) {
@@ -1715,6 +1906,22 @@
     });
   });
 
+  // ---------- voice guidance toggle ----------
+
+  var voiceToggle = document.getElementById("voice-toggle");
+
+  voiceToggle.addEventListener("click", function () {
+    state.voiceOn = !state.voiceOn;
+    voiceToggle.setAttribute("aria-pressed", String(state.voiceOn));
+    voiceToggle.setAttribute("aria-label", state.voiceOn ? "음성 안내 끄기" : "음성 안내 켜기");
+    voiceToggle.innerHTML = '<svg><use href="#' + (state.voiceOn ? "icon-speaker" : "icon-speaker-mute") + '"/></svg>음성 안내';
+    if (!state.voiceOn && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    } else if (state.voiceOn) {
+      speak("음성 안내를 켰습니다");
+    }
+  });
+
   // ---------- call staff ----------
 
   var helpBtn = document.getElementById("help-btn");
@@ -1749,12 +1956,14 @@
     if (!state.cart.length) return;
     checkoutOrderNumber = String(Math.floor(Math.random() * 900) + 100);
     modalVeil.classList.add("is-open");
+    setStep(3);
     showMethodStep();
   }
 
   function closeCheckout() {
     clearCheckoutTimer();
     modalVeil.classList.remove("is-open");
+    setStep(state.cart.length ? 2 : 1);
   }
 
   function modalTopbar() {
@@ -1795,6 +2004,7 @@
         payMethodBtn("qr", "icon-qr", "간편결제", "QR코드를 휴대폰으로 스캔") +
       "</div>";
 
+    speak("결제 수단을 선택해주세요");
     bindTopbar(closeCheckout);
     modalBody.querySelectorAll("[data-method]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1816,13 +2026,23 @@
 
   function showCashStep() {
     clearCheckoutTimer();
+    speak("현금 결제를 선택하셨습니다");
     var total = cartTotal();
     var inserted = 0;
+
+    var BILLS = [1000, 5000, 10000, 50000];
+    function suggestBill(remainingAmount) {
+      for (var i = 0; i < BILLS.length; i++) {
+        if (BILLS[i] >= remainingAmount) return BILLS[i];
+      }
+      return BILLS[BILLS.length - 1];
+    }
 
     function renderCash() {
       var remaining = Math.max(0, total - inserted);
       var change = Math.max(0, inserted - total);
       var met = inserted >= total;
+      var suggested = met ? null : suggestBill(remaining);
 
       modalBody.className = "modal modal--cash";
       modalBody.innerHTML =
@@ -1833,9 +2053,10 @@
           '<div class="cash-total-row"><span>투입 금액</span><b class="num">' + won(inserted) + "</b></div>" +
           '<div class="cash-total-row remaining' + (met ? " is-met" : "") + '"><span>' + (met ? "거스름돈" : "남은 금액") + '</span><b class="num">' + won(met ? change : remaining) + "</b></div>" +
         "</div>" +
+        (met ? "" : '<div class="cash-hint"><svg><use href="#icon-cash"/></svg>' + won(suggested) + "권을 넣어보세요</div>") +
         '<div class="bill-grid">' +
-          [1000, 5000, 10000, 50000].map(function (v) {
-            return '<button type="button" class="bill-btn" data-bill="' + v + '"><svg><use href="#icon-cash"/></svg><span class="num">' + v.toLocaleString("ko-KR") + '원</span><small>넣기</small></button>';
+          BILLS.map(function (v) {
+            return '<button type="button" class="bill-btn' + (v === suggested ? " is-suggested" : "") + '" data-bill="' + v + '"><svg><use href="#icon-cash"/></svg><span class="num">' + v.toLocaleString("ko-KR") + '원</span><small>' + (v === suggested ? "추천" : "넣기") + "</small></button>";
           }).join("") +
         "</div>" +
         '<div class="cash-actions">' +
@@ -1947,11 +2168,13 @@
       receiptBlock +
       '<button type="button" class="new-order-btn" id="new-order-btn">확인</button>';
 
+    speak("결제가 완료되었습니다. 주문번호 " + checkoutOrderNumber.split("").join(" ") + "번");
     document.getElementById("new-order-btn").addEventListener("click", showPreparingStep);
   }
 
   function showPreparingStep() {
     clearCheckoutTimer();
+    setStep(4);
     modalBody.className = "modal modal--processing";
     modalBody.innerHTML = '<div class="spinner"></div><p class="processing-label">음료·메뉴를 준비하고 있어요…</p>';
     checkoutTimer = setTimeout(showReadyStep, 3200);
@@ -1967,11 +2190,14 @@
       '<div class="order-number-label">픽업대에서 주문번호를 확인해주세요</div>' +
       '<button type="button" class="new-order-btn" id="new-order-btn">새 주문 시작하기</button>';
 
+    speak("준비가 완료됐어요. 주문번호 " + checkoutOrderNumber.split("").join(" ") + "번, 픽업대에서 확인해주세요");
+
     document.getElementById("new-order-btn").addEventListener("click", function () {
       state.cart = [];
       renderCart();
       cartPanel.classList.remove("is-open");
       modalVeil.classList.remove("is-open");
+      setStep(1);
     });
   }
 
