@@ -1,0 +1,1671 @@
+<title>카페 울공 키오스크</title>
+<style>
+  /* This page renders a single, fixed device screen — like a real kiosk,
+     it does not follow the viewer's OS light/dark setting. Colors are
+     declared once and used everywhere via tokens. */
+
+  @import url('https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&display=swap');
+
+  :root {
+    --ink: #2b2420;
+    --ink-soft: #6e645b;
+    --ink-faint: #a89e93;
+    --paper: #ffffff;
+    --paper-tint: #f7f3ec;
+    --stage: #ece6dc;
+    --line: #e6ded2;
+    --gold: #c8912e;
+    --gold-soft: #f1e2c4;
+    --sage: #4f8272;
+    --plum: #82628a;
+    --toast: #9c6f45;
+    --cta: #2f6b54;
+    --cta-hover: #24543f;
+    --danger: #b23b3b;
+    --shadow: rgba(43, 36, 32, 0.16);
+    --radius-lg: 28px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    font-size: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--stage);
+    color: var(--ink);
+    font-family: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display {
+    font-family: 'Do Hyeon', 'Malgun Gothic', sans-serif;
+    font-weight: 400;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- stage ---------- */
+
+  #kiosk-root, #phone-root {
+    display: none;
+  }
+
+  .stage {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: clamp(14px, 3vw, 40px);
+  }
+
+  .kiosk {
+    width: 100%;
+    max-width: 1180px;
+    background: var(--paper);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 60px var(--shadow), 0 2px 0 rgba(255,255,255,0.4) inset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: min(800px, calc(100vh - 40px));
+  }
+
+  /* ---------- header ---------- */
+
+  .kiosk__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 28px;
+    background: var(--ink);
+    color: var(--paper);
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand__mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--gold);
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .brand__mark svg { width: 26px; height: 26px; }
+
+  .brand__text .display {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .brand__text p {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .order-type {
+    display: flex;
+    gap: 6px;
+    background: rgba(255,255,255,0.1);
+    padding: 5px;
+    border-radius: 999px;
+  }
+
+  .order-type button {
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .order-type button svg { width: 16px; height: 16px; }
+
+  .order-type button.is-active {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  /* ---------- body layout ---------- */
+
+  .kiosk__body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 168px 1fr 336px;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  /* ---------- category rail ---------- */
+
+  .categories {
+    background: var(--paper-tint);
+    border-right: 1px solid var(--line);
+    padding: 18px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .cat-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    font-size: 0.95rem;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .cat-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .cat-btn:hover { background: var(--stage); }
+
+  .cat-btn.is-active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* ---------- menu grid ---------- */
+
+  .menu {
+    padding: 22px 24px 32px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .menu__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .menu__heading h2 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+
+  .menu__heading span {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+  }
+
+  .menu__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--paper);
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+
+  .card:hover {
+    box-shadow: 0 8px 20px var(--shadow);
+    transform: translateY(-2px);
+  }
+
+  .card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  .card__icon svg { width: 26px; height: 26px; }
+
+  .temp-tag {
+    font-size: 0.72rem;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .temp-toggle {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .temp-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .temp-toggle button.is-active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .card__name {
+    font-size: 1.08rem;
+    line-height: 1.3;
+  }
+
+  .card__price {
+    font-weight: 400;
+    font-size: 1.02rem;
+  }
+
+  .card__bottom {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stepper button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--paper-tint);
+    color: var(--ink);
+    font-size: 1rem;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  .stepper button:hover { background: var(--stage); }
+
+  .stepper__count {
+    min-width: 18px;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .add-btn {
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .add-btn:hover { background: #47392f; }
+
+  .add-btn.is-added {
+    background: var(--cta);
+  }
+
+  /* ---------- cart panel ---------- */
+
+  .cart {
+    background: var(--paper-tint);
+    border-left: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cart__summary-bar {
+    display: none;
+  }
+
+  .cart__head {
+    padding: 18px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart__head h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .cart__head span {
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+  }
+
+  .cart__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cart__empty {
+    margin: auto;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 0.92rem;
+    padding: 20px;
+  }
+
+  .cart__empty svg {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
+    color: var(--ink-faint);
+  }
+
+  .line {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .line__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .line__name {
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+
+  .line__meta {
+    font-size: 0.76rem;
+    color: var(--ink-faint);
+  }
+
+  .line__remove {
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+
+  .line__remove:hover { color: var(--danger); }
+
+  .line__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .line .stepper button { width: 26px; height: 26px; }
+
+  .line__price {
+    font-size: 0.92rem;
+  }
+
+  .cart__foot {
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cart__total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .cart__total-row span:first-child {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  .cart__total-row span:last-child {
+    font-size: 1.5rem;
+  }
+
+  .pay-btn {
+    border: none;
+    background: var(--cta);
+    color: var(--paper);
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s;
+  }
+
+  .pay-btn:hover:not(:disabled) { background: var(--cta-hover); }
+
+  .pay-btn:disabled {
+    background: var(--ink-faint);
+    cursor: not-allowed;
+  }
+
+  .pay-btn svg { width: 20px; height: 20px; }
+
+  /* ---------- modal ---------- */
+
+  .modal-veil {
+    position: fixed;
+    inset: 0;
+    background: rgba(43,36,32,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 40;
+  }
+
+  .modal-veil.is-open { display: flex; }
+
+  .modal {
+    background: var(--paper);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    padding: 32px 28px 28px;
+    text-align: center;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+  }
+
+  .modal--processing .spinner {
+    width: 48px;
+    height: 48px;
+    margin: 8px auto 20px;
+    border-radius: 50%;
+    border: 4px solid var(--line);
+    border-top-color: var(--cta);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .check {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--cta);
+    color: var(--paper);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+  }
+
+  .check svg { width: 34px; height: 34px; }
+
+  .order-number {
+    font-size: 2.1rem;
+    color: var(--cta);
+    margin: 4px 0 2px;
+  }
+
+  .order-number-label {
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+
+  .receipt {
+    text-align: left;
+    background: var(--paper-tint);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin: 14px 0 18px;
+  }
+
+  .receipt__row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    padding: 4px 0;
+    color: var(--ink-soft);
+  }
+
+  .receipt__row.total {
+    color: var(--ink);
+    font-size: 0.98rem;
+    padding-top: 8px;
+    margin-top: 6px;
+    border-top: 1px dashed var(--ink-faint);
+  }
+
+  .modal .new-order-btn {
+    width: 100%;
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+  }
+
+  .modal .new-order-btn:hover { background: #47392f; }
+
+  .modal p.processing-label {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+  }
+
+  /* ---------- payment method step ---------- */
+
+  .modal-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -6px -6px 6px;
+  }
+
+  .modal-icon-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+
+  .modal-icon-btn:hover { background: var(--paper-tint); color: var(--ink); }
+  .modal-icon-btn svg { width: 18px; height: 18px; }
+
+  .modal-title {
+    font-size: 1.15rem;
+    margin: 4px 0 2px;
+  }
+
+  .modal-total {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin-bottom: 18px;
+  }
+
+  .modal-total b { color: var(--ink); font-weight: 400; }
+
+  .pay-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pay-method-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .pay-method-btn:hover {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+  }
+
+  .pay-method-btn__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--paper-tint);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  .pay-method-btn__icon svg { width: 24px; height: 24px; }
+
+  .pay-method-btn__text .name { font-size: 1rem; }
+  .pay-method-btn__text .hint {
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  /* ---------- cash step ---------- */
+
+  .cash-total {
+    background: var(--paper-tint);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .cash-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    padding: 3px 0;
+  }
+
+  .cash-total-row b {
+    color: var(--ink);
+    font-weight: 400;
+    font-size: 1.1rem;
+  }
+
+  .cash-total-row.remaining b { color: var(--danger); }
+  .cash-total-row.remaining.is-met b { color: var(--cta); }
+
+  .bill-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .bill-btn {
+    border: 1.5px dashed var(--line);
+    background: var(--paper);
+    border-radius: var(--radius-sm);
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--ink);
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .bill-btn:hover { border-color: var(--gold); background: var(--gold-soft); }
+  .bill-btn svg { width: 26px; height: 26px; color: var(--toast); }
+  .bill-btn span { font-size: 0.92rem; }
+  .bill-btn small { font-size: 0.7rem; color: var(--ink-faint); }
+
+  .cash-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .cash-actions .ghost-btn {
+    flex: 1;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink-soft);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+  }
+
+  .cash-actions .ghost-btn:hover { background: var(--paper-tint); }
+
+  /* ---------- qr step ---------- */
+
+  .qr-frame {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: inline-grid;
+    place-items: center;
+    margin: 4px auto 14px;
+  }
+
+  .qr-frame img, .qr-frame canvas { display: block; }
+
+  .qr-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
+
+  .qr-status .dot-spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2.5px solid var(--line);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ---------- phone confirm view ---------- */
+
+  .phone-card__sub {
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    margin: 2px 0 4px;
+  }
+
+  .phone-card__order-no {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin-top: 14px;
+  }
+
+  /* ---------- responsive: bottom-sheet cart ---------- */
+
+  @media (max-width: 980px) {
+    .kiosk__body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    .categories {
+      flex-direction: row;
+      overflow-x: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .cat-btn { flex-shrink: 0; }
+    .cat-btn span.cat-label { display: inline; }
+
+    .menu { padding-bottom: 90px; }
+
+    .cart {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-width: 1180px;
+      margin: 0 auto;
+      border-left: none;
+      border-top: 1px solid var(--line);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -12px 30px var(--shadow);
+      max-height: 78vh;
+      transform: translateY(calc(100% - 62px));
+      transition: transform 0.25s ease;
+      z-index: 30;
+    }
+
+    .cart.is-open { transform: translateY(0); }
+
+    .cart__summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      height: 62px;
+      cursor: pointer;
+      border: none;
+      background: var(--ink);
+      color: var(--paper);
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+    }
+
+    .cart__summary-bar .count-pill {
+      background: var(--gold);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 0.78rem;
+      margin-right: 8px;
+    }
+
+    .cart__summary-bar .chevron {
+      transition: transform 0.2s;
+    }
+
+    .cart.is-open .cart__summary-bar .chevron {
+      transform: rotate(180deg);
+    }
+
+    .cart__head { display: none; }
+  }
+
+  @media (max-width: 560px) {
+    .menu__grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .kiosk__header { padding: 16px 18px; }
+    .brand__text p { display: none; }
+  }
+</style>
+
+<!-- icon sprite -->
+<svg style="display:none" aria-hidden="true">
+  <defs>
+    <symbol id="icon-cafe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/>
+      <path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/>
+      <path d="M8 4.5c0-.9.9-.9.9-1.8M12 4.5c0-.9.9-.9.9-1.8"/>
+    </symbol>
+    <symbol id="icon-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="7" height="7" rx="1.5"/>
+      <rect x="13" y="4" width="7" height="7" rx="1.5"/>
+      <rect x="4" y="13" width="7" height="7" rx="1.5"/>
+      <rect x="13" y="13" width="7" height="7" rx="1.5"/>
+    </symbol>
+    <symbol id="icon-cup-hot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 9h12v6a4.5 4.5 0 0 1-4.5 4.5h-3A4.5 4.5 0 0 1 5 15V9Z"/>
+      <path d="M17 10h1.3a2.2 2.2 0 0 1 0 4.4H17"/>
+      <path d="M9 5.2c0-1 .9-1 .9-2M13 5.2c0-1 .9-1 .9-2"/>
+    </symbol>
+    <symbol id="icon-cup-ice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 8h12l-1.2 11.2a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Z"/>
+      <path d="M6.6 12.5h10.8M7.1 16h9.8"/>
+      <path d="M14 8V3.5M14 3.5l2-1.2"/>
+    </symbol>
+    <symbol id="icon-latte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 9h12v6a4.5 4.5 0 0 1-4.5 4.5h-3A4.5 4.5 0 0 1 5 15V9Z"/>
+      <path d="M17 10h1.3a2.2 2.2 0 0 1 0 4.4H17"/>
+      <path d="M9.3 8c.5-1 2-1.6 2.7-.7.7-.9 2.2-.3 2.7.7"/>
+    </symbol>
+    <symbol id="icon-smoothie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 8h10l-1 10.5a2 2 0 0 1-2 1.8h-4a2 2 0 0 1-2-1.8L7 8Z"/>
+      <path d="M9.3 11.3c1.8 1 3.6-1 5.4 0"/>
+      <path d="M15.5 8V3l2.3-1.4"/>
+    </symbol>
+    <symbol id="icon-ade" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7.5 7.5h9l-.9 11a2 2 0 0 1-2 1.8h-3.2a2 2 0 0 1-2-1.8l-.9-11Z"/>
+      <circle cx="17.2" cy="6.2" r="2.4"/>
+      <path d="M17.2 3.8v4.8M15 6.2h4.4"/>
+      <path d="M13.5 7.5V3.2l2.1-1.3"/>
+    </symbol>
+    <symbol id="icon-tea" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10h13v3.5A5.5 5.5 0 0 1 11.5 19h-2A5.5 5.5 0 0 1 4 13.5V10Z"/>
+      <path d="M17 11h1.5a2 2 0 0 1 0 4H17"/>
+      <path d="M12 10V6.5M12 6.5l2.3-1.4M12 6.5 9.7 5.1"/>
+    </symbol>
+    <symbol id="icon-pastry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 16c1-5 4.5-9.5 9-10.5C15 9 17 12 20 12.5c-3 .5-5.5 3-7 6-1.8-3-4.5-2-9-2.5Z"/>
+    </symbol>
+    <symbol id="icon-muffin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 11c0-2.8 2.7-5 6-5s6 2.2 6 5"/>
+      <path d="M5 11h14l-1.3 7.3a2 2 0 0 1-2 1.7H8.3a2 2 0 0 1-2-1.7L5 11Z"/>
+      <path d="M6 11c.5-1.2 1.7-1.2 2.2 0M11 11c.5-1.2 1.7-1.2 2.2 0M16 11c.4-1 1.3-1 1.8 0"/>
+      <circle cx="9.5" cy="15" r=".6" fill="currentColor" stroke="none"/>
+      <circle cx="13.5" cy="16.2" r=".6" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="icon-cake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3.5 20 19H4L12 3.5Z"/>
+      <path d="M7.3 13.5h9.4"/>
+      <circle cx="12" cy="8" r=".6" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="icon-macaron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 9.5c0-2 1.6-3.5 3.8-3.5h6.4c2.2 0 3.8 1.5 3.8 3.5S17.4 13 15.2 13H8.8C6.6 13 5 11.5 5 9.5Z"/>
+      <path d="M5 15.5c0-2 1.6-3.5 3.8-3.5h6.4c2.2 0 3.8 1.5 3.8 3.5S17.4 19 15.2 19H8.8C6.6 19 5 17.5 5 15.5Z"/>
+      <path d="M4.6 12.5h14.8"/>
+    </symbol>
+    <symbol id="icon-waffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="3"/>
+      <path d="M4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/>
+    </symbol>
+    <symbol id="icon-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5 5.2 4h13.6L20 9.5"/>
+      <path d="M4.5 9.5h15v8.7a1.8 1.8 0 0 1-1.8 1.8H6.3a1.8 1.8 0 0 1-1.8-1.8V9.5Z"/>
+      <path d="M9.5 20v-4.5a2.5 2.5 0 0 1 5 0V20"/>
+    </symbol>
+    <symbol id="icon-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 8.5h11l1 11.5a1.6 1.6 0 0 1-1.6 1.7H7.1a1.6 1.6 0 0 1-1.6-1.7l1-11.5Z"/>
+      <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>
+    </symbol>
+    <symbol id="icon-basket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 10h14l-1.4 8.4a2 2 0 0 1-2 1.6H8.4a2 2 0 0 1-2-1.6L5 10Z"/>
+      <path d="M9 10 8 5M15 10l1-5M4 10h16"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12.5 10 17.5 19 7"/>
+    </symbol>
+    <symbol id="icon-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.5" y="6" width="17" height="12" rx="2"/>
+      <path d="M3.5 10h17"/>
+      <path d="M7 14.5h4"/>
+    </symbol>
+    <symbol id="icon-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2.5" y="6.5" width="19" height="11" rx="1.8"/>
+      <circle cx="12" cy="12" r="2.6"/>
+      <path d="M5.5 9v6M18.5 9v6"/>
+    </symbol>
+    <symbol id="icon-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="6.5" height="6.5" rx="1"/>
+      <rect x="14.5" y="3" width="6.5" height="6.5" rx="1"/>
+      <rect x="3" y="14.5" width="6.5" height="6.5" rx="1"/>
+      <path d="M5.7 5.7h1.1v1.1H5.7zM17.2 5.7h1.1v1.1h-1.1zM5.7 17.2h1.1v1.1H5.7z" fill="currentColor" stroke="none"/>
+      <path d="M14.5 14.5h3v3h-3zM19.5 14.5h1.5v1.5h-1.5zM14.5 19.5h1.5v1.5h-1.5zM19.5 19.5h1.5v1.5h-1.5z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M11 6l-6 6 6 6"/>
+    </symbol>
+    <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="kiosk-root">
+<div class="stage">
+  <div class="kiosk">
+    <header class="kiosk__header">
+      <div class="brand">
+        <div class="brand__mark"><svg><use href="#icon-cafe"/></svg></div>
+        <div class="brand__text">
+          <div class="display">카페 울공</div>
+          <p>메뉴를 골라 담고, 결제까지 해보세요</p>
+        </div>
+      </div>
+      <div class="order-type" role="group" aria-label="주문 방식">
+        <button type="button" data-order="dine" class="is-active"><svg><use href="#icon-store"/></svg>매장</button>
+        <button type="button" data-order="take"><svg><use href="#icon-bag"/></svg>포장</button>
+      </div>
+    </header>
+
+    <div class="kiosk__body">
+      <nav class="categories" id="categories" aria-label="메뉴 카테고리"></nav>
+
+      <main class="menu">
+        <div class="menu__heading">
+          <h2 class="display" id="menu-title">전체 메뉴</h2>
+          <span id="menu-count"></span>
+        </div>
+        <div class="menu__grid" id="menu-grid"></div>
+      </main>
+
+      <aside class="cart" id="cart">
+        <button type="button" class="cart__summary-bar" id="cart-toggle">
+          <span><span class="count-pill num" id="bar-count">0</span>담긴 메뉴 · <span class="num" id="bar-total">0원</span></span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+        <div class="cart__head">
+          <h2 class="display">주문 내역</h2>
+          <span id="cart-item-count">0개</span>
+        </div>
+        <div class="cart__list" id="cart-list">
+          <div class="cart__empty" id="cart-empty">
+            <svg><use href="#icon-basket"/></svg>
+            <div>장바구니가 비어 있어요<br>메뉴를 담아보세요</div>
+          </div>
+        </div>
+        <div class="cart__foot">
+          <div class="cart__total-row">
+            <span>총 결제금액</span>
+            <span class="display num" id="cart-total">0원</span>
+          </div>
+          <button type="button" class="pay-btn" id="pay-btn" disabled>
+            <svg><use href="#icon-card"/></svg>
+            결제하기
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="phone-root">
+  <div class="stage">
+    <div class="modal phone-card">
+      <div class="brand__mark" style="margin:0 auto 14px"><svg><use href="#icon-cafe"/></svg></div>
+      <div class="display" style="font-size:1.4rem">카페 울공</div>
+      <p class="phone-card__sub">간편결제 확인</p>
+
+      <div id="phone-pending">
+        <div class="phone-card__order-no" id="phone-order-no">주문번호 -</div>
+        <div class="order-number display num" id="phone-amount" style="font-size:1.9rem">0원</div>
+        <button type="button" class="pay-btn" id="phone-pay-btn" style="width:100%;margin-top:18px">
+          <svg><use href="#icon-card"/></svg>
+          결제 완료
+        </button>
+      </div>
+
+      <div id="phone-done" hidden>
+        <div class="check"><svg><use href="#icon-check"/></svg></div>
+        <div class="display">결제가 완료되었습니다</div>
+        <p class="phone-card__sub">이 창을 닫고 키오스크 화면으로<br>돌아가 주세요</p>
+      </div>
+
+      <div id="phone-invalid" hidden>
+        <p class="phone-card__sub">유효한 결제 정보를 찾을 수 없어요.<br>키오스크에서 QR코드를 다시 확인해주세요.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-veil" id="modal-veil">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Works wherever this page is hosted (GitHub Pages included) — the QR
+  // simply links back to this same page's own URL, stripped of any query.
+  var BASE_URL = window.location.origin + window.location.pathname;
+  var kioskRoot = document.getElementById("kiosk-root");
+  var phoneRoot = document.getElementById("phone-root");
+  var searchParams = new URLSearchParams(window.location.search);
+
+  // A QR code generated on the kiosk links back to this SAME page with
+  // ?pay=1, so scanning it opens a self-contained payment-confirmation
+  // screen — no server or account needed, the order details travel in
+  // the link itself.
+  if (searchParams.get("pay") === "1") {
+    initPhoneView();
+    return;
+  }
+  kioskRoot.style.display = "contents";
+
+  function initPhoneView() {
+    phoneRoot.style.display = "block";
+    var total = parseInt(searchParams.get("total"), 10);
+    var order = searchParams.get("order");
+    var pendingEl = document.getElementById("phone-pending");
+    var doneEl = document.getElementById("phone-done");
+    var invalidEl = document.getElementById("phone-invalid");
+
+    if (!total || !order) {
+      pendingEl.hidden = true;
+      invalidEl.hidden = false;
+      return;
+    }
+
+    document.getElementById("phone-order-no").textContent = "주문번호 " + order;
+    document.getElementById("phone-amount").textContent = (total).toLocaleString("ko-KR") + "원";
+    document.getElementById("phone-pay-btn").addEventListener("click", function () {
+      pendingEl.hidden = true;
+      doneEl.hidden = false;
+    });
+  }
+
+  var CATEGORIES = [
+    { id: "all", label: "전체", icon: "icon-grid" },
+    { id: "coffee", label: "커피", icon: "icon-cup-hot" },
+    { id: "drink", label: "음료", icon: "icon-ade" },
+    { id: "tea", label: "티", icon: "icon-tea" },
+    { id: "dessert", label: "디저트", icon: "icon-cake" }
+  ];
+
+  // temp: 'hot' | 'ice' | 'both'  (iceSurcharge applies only when temp === 'both')
+  var MENU = [
+    { id: "americano", name: "아메리카노", category: "coffee", icon: "icon-cup-hot", price: 3000, temp: "both", iceSurcharge: 500 },
+    { id: "latte", name: "카페라떼", category: "coffee", icon: "icon-latte", price: 4000, temp: "both", iceSurcharge: 500 },
+    { id: "vanilla-latte", name: "바닐라라떼", category: "coffee", icon: "icon-latte", price: 4500, temp: "both", iceSurcharge: 500 },
+    { id: "cappuccino", name: "카푸치노", category: "coffee", icon: "icon-latte", price: 4200, temp: "both", iceSurcharge: 500 },
+    { id: "caramel-macchiato", name: "카라멜마키아토", category: "coffee", icon: "icon-latte", price: 4800, temp: "both", iceSurcharge: 500 },
+    { id: "cold-brew", name: "콜드브루", category: "coffee", icon: "icon-cup-ice", price: 4300, temp: "ice" },
+
+    { id: "choco-latte", name: "초코라떼", category: "drink", icon: "icon-latte", price: 4500, temp: "both", iceSurcharge: 500 },
+    { id: "strawberry-smoothie", name: "딸기스무디", category: "drink", icon: "icon-smoothie", price: 5000, temp: "ice" },
+    { id: "mango-smoothie", name: "망고스무디", category: "drink", icon: "icon-smoothie", price: 5200, temp: "ice" },
+    { id: "grapefruit-ade", name: "자몽에이드", category: "drink", icon: "icon-ade", price: 4800, temp: "ice" },
+    { id: "lemonade", name: "레모네이드", category: "drink", icon: "icon-ade", price: 4500, temp: "ice" },
+
+    { id: "chamomile", name: "캐모마일티", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
+    { id: "yuzu-tea", name: "유자차", category: "tea", icon: "icon-tea", price: 4200, temp: "both", iceSurcharge: 500 },
+    { id: "earl-grey", name: "얼그레이", category: "tea", icon: "icon-tea", price: 4000, temp: "hot" },
+
+    { id: "croissant", name: "크루아상", category: "dessert", icon: "icon-pastry", price: 3500, temp: null },
+    { id: "choco-muffin", name: "초코머핀", category: "dessert", icon: "icon-muffin", price: 3800, temp: null },
+    { id: "cheesecake", name: "치즈케이크", category: "dessert", icon: "icon-cake", price: 5500, temp: null },
+    { id: "macaron", name: "마카롱 (2입)", category: "dessert", icon: "icon-macaron", price: 4000, temp: null },
+    { id: "waffle", name: "와플", category: "dessert", icon: "icon-waffle", price: 5000, temp: null }
+  ];
+
+  var CATEGORY_TINT = { coffee: "gold", drink: "sage", tea: "plum", dessert: "toast" };
+  var TINT_COLORS = {
+    gold: { bg: "var(--gold-soft)", fg: "var(--gold)" },
+    sage: { bg: "#e3ece8", fg: "var(--sage)" },
+    plum: { bg: "#ece3ee", fg: "var(--plum)" },
+    toast: { bg: "#ece2d6", fg: "var(--toast)" }
+  };
+
+  var state = {
+    category: "all",
+    orderType: "dine",
+    cardTemp: {},   // id -> 'hot' | 'ice'
+    cardQty: {},    // id -> integer
+    cart: []        // { key, id, name, temp, unitPrice, qty }
+  };
+
+  function won(n) { return n.toLocaleString("ko-KR") + "원"; }
+
+  function tempDefault(item) {
+    if (item.temp === "both") return "ice";
+    return item.temp;
+  }
+
+  MENU.forEach(function (item) {
+    state.cardTemp[item.id] = tempDefault(item);
+    state.cardQty[item.id] = 1;
+  });
+
+  // ---------- category rail ----------
+
+  var categoriesEl = document.getElementById("categories");
+  CATEGORIES.forEach(function (cat) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cat-btn" + (cat.id === state.category ? " is-active" : "");
+    btn.dataset.cat = cat.id;
+    btn.innerHTML = '<svg><use href="#' + cat.icon + '"/></svg><span class="cat-label">' + cat.label + "</span>";
+    btn.addEventListener("click", function () {
+      state.category = cat.id;
+      renderCategories();
+      renderMenu();
+    });
+    categoriesEl.appendChild(btn);
+  });
+
+  function renderCategories() {
+    Array.prototype.forEach.call(categoriesEl.children, function (btn) {
+      btn.classList.toggle("is-active", btn.dataset.cat === state.category);
+    });
+  }
+
+  // ---------- menu grid ----------
+
+  var menuGrid = document.getElementById("menu-grid");
+  var menuTitle = document.getElementById("menu-title");
+  var menuCount = document.getElementById("menu-count");
+
+  function itemsFor(catId) {
+    if (catId === "all") return MENU;
+    return MENU.filter(function (m) { return m.category === catId; });
+  }
+
+  function renderMenu() {
+    var cat = CATEGORIES.filter(function (c) { return c.id === state.category; })[0];
+    var items = itemsFor(state.category);
+    menuTitle.textContent = cat.label + (cat.id === "all" ? " 메뉴" : "");
+    menuCount.textContent = items.length + "종";
+    menuGrid.innerHTML = "";
+
+    items.forEach(function (item) {
+      var tint = TINT_COLORS[CATEGORY_TINT[item.category]];
+      var card = document.createElement("div");
+      card.className = "card";
+
+      var tempMarkup;
+      if (item.temp === "both") {
+        var cur = state.cardTemp[item.id];
+        tempMarkup =
+          '<div class="temp-toggle" role="group" aria-label="' + item.name + ' 온도 선택">' +
+          '<button type="button" data-temp="hot" class="' + (cur === "hot" ? "is-active" : "") + '">HOT</button>' +
+          '<button type="button" data-temp="ice" class="' + (cur === "ice" ? "is-active" : "") + '">ICE</button>' +
+          "</div>";
+      } else if (item.temp === "hot") {
+        tempMarkup = '<span class="temp-tag">HOT</span>';
+      } else if (item.temp === "ice") {
+        tempMarkup = '<span class="temp-tag">ICE</span>';
+      } else {
+        tempMarkup = "";
+      }
+
+      var priceLabel = won(item.price);
+      if (item.temp === "both" && state.cardTemp[item.id] === "ice") {
+        priceLabel = won(item.price + item.iceSurcharge) + '<span style="font-size:.72rem;color:var(--ink-faint)"> (ICE +' + item.iceSurcharge.toLocaleString("ko-KR") + "원)</span>";
+      }
+
+      card.innerHTML =
+        '<div class="card__top">' +
+          '<div class="card__icon" style="background:' + tint.bg + ";color:" + tint.fg + '"><svg><use href="#' + item.icon + '"/></svg></div>' +
+          tempMarkup +
+        "</div>" +
+        '<div class="card__name">' + item.name + "</div>" +
+        '<div class="card__price num">' + priceLabel + "</div>" +
+        '<div class="card__bottom">' +
+          '<div class="stepper" aria-label="' + item.name + ' 수량">' +
+            '<button type="button" data-act="dec" aria-label="수량 줄이기">−</button>' +
+            '<span class="stepper__count num">' + state.cardQty[item.id] + "</span>" +
+            '<button type="button" data-act="inc" aria-label="수량 늘리기">+</button>' +
+          "</div>" +
+          '<button type="button" class="add-btn">담기</button>' +
+        "</div>";
+
+      card.dataset.id = item.id;
+      menuGrid.appendChild(card);
+    });
+  }
+
+  menuGrid.addEventListener("click", function (e) {
+    var card = e.target.closest(".card");
+    if (!card) return;
+    var id = card.dataset.id;
+    var item = MENU.filter(function (m) { return m.id === id; })[0];
+
+    if (e.target.closest("[data-temp]")) {
+      state.cardTemp[id] = e.target.closest("[data-temp]").dataset.temp;
+      renderMenu();
+      return;
+    }
+    if (e.target.closest("[data-act='inc']")) {
+      state.cardQty[id] = Math.min(9, state.cardQty[id] + 1);
+      renderMenu();
+      return;
+    }
+    if (e.target.closest("[data-act='dec']")) {
+      state.cardQty[id] = Math.max(1, state.cardQty[id] - 1);
+      renderMenu();
+      return;
+    }
+    if (e.target.closest(".add-btn")) {
+      addToCart(item, state.cardTemp[id], state.cardQty[id]);
+
+      var btn = e.target.closest(".add-btn");
+      var original = btn.textContent;
+      btn.textContent = "담았어요 ✓";
+      btn.classList.add("is-added");
+      setTimeout(function () {
+        btn.textContent = original;
+        btn.classList.remove("is-added");
+      }, 800);
+
+      // reset this card's quantity in place, without rebuilding the grid,
+      // so the "담았어요 ✓" feedback above stays visible
+      state.cardQty[id] = 1;
+      var countEl = card.querySelector(".stepper__count");
+      if (countEl) countEl.textContent = "1";
+
+      bumpCartBadge();
+    }
+  });
+
+  // ---------- cart ----------
+
+  function addToCart(item, temp, qty) {
+    var unitPrice = item.price + (item.temp === "both" && temp === "ice" ? item.iceSurcharge : 0);
+    var key = item.id + ":" + (temp || "none");
+    var existing = state.cart.filter(function (l) { return l.key === key; })[0];
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      state.cart.push({ key: key, id: item.id, name: item.name, temp: temp, unitPrice: unitPrice, qty: qty });
+    }
+    renderCart();
+  }
+
+  var cartList = document.getElementById("cart-list");
+  var cartEmpty = document.getElementById("cart-empty");
+  var cartTotalEl = document.getElementById("cart-total");
+  var cartItemCountEl = document.getElementById("cart-item-count");
+  var payBtn = document.getElementById("pay-btn");
+  var barCount = document.getElementById("bar-count");
+  var barTotal = document.getElementById("bar-total");
+  var cartPanel = document.getElementById("cart");
+  var cartToggle = document.getElementById("cart-toggle");
+
+  function cartTotal() {
+    return state.cart.reduce(function (sum, l) { return sum + l.unitPrice * l.qty; }, 0);
+  }
+
+  function cartCount() {
+    return state.cart.reduce(function (sum, l) { return sum + l.qty; }, 0);
+  }
+
+  function tempLabel(temp) {
+    if (temp === "hot") return "HOT";
+    if (temp === "ice") return "ICE";
+    return "";
+  }
+
+  function renderCart() {
+    cartList.querySelectorAll(".line").forEach(function (n) { n.remove(); });
+    cartEmpty.style.display = state.cart.length ? "none" : "flex";
+    cartEmpty.style.flexDirection = "column";
+    cartEmpty.style.alignItems = "center";
+
+    state.cart.forEach(function (line) {
+      var el = document.createElement("div");
+      el.className = "line";
+      el.dataset.key = line.key;
+      var metaText = tempLabel(line.temp);
+      el.innerHTML =
+        '<div class="line__top">' +
+          '<div>' +
+            '<div class="line__name">' + line.name + "</div>" +
+            (metaText ? '<div class="line__meta">' + metaText + "</div>" : "") +
+          "</div>" +
+          '<button type="button" class="line__remove" aria-label="' + line.name + " 삭제\">×</button>" +
+        "</div>" +
+        '<div class="line__bottom">' +
+          '<div class="stepper" aria-label="' + line.name + ' 수량">' +
+            '<button type="button" data-act="dec">−</button>' +
+            '<span class="stepper__count num">' + line.qty + "</span>" +
+            '<button type="button" data-act="inc">+</button>' +
+          "</div>" +
+          '<div class="line__price num">' + won(line.unitPrice * line.qty) + "</div>" +
+        "</div>";
+      cartList.appendChild(el);
+    });
+
+    var total = cartTotal();
+    var count = cartCount();
+    cartTotalEl.textContent = won(total);
+    cartItemCountEl.textContent = count + "개";
+    barCount.textContent = count;
+    barTotal.textContent = won(total);
+    payBtn.disabled = state.cart.length === 0;
+  }
+
+  cartList.addEventListener("click", function (e) {
+    var line = e.target.closest(".line");
+    if (!line) return;
+    var key = line.dataset.key;
+    var entry = state.cart.filter(function (l) { return l.key === key; })[0];
+    if (!entry) return;
+
+    if (e.target.closest(".line__remove")) {
+      state.cart = state.cart.filter(function (l) { return l.key !== key; });
+    } else if (e.target.closest("[data-act='inc']")) {
+      entry.qty = Math.min(9, entry.qty + 1);
+    } else if (e.target.closest("[data-act='dec']")) {
+      entry.qty -= 1;
+      if (entry.qty <= 0) {
+        state.cart = state.cart.filter(function (l) { return l.key !== key; });
+      }
+    }
+    renderCart();
+  });
+
+  function bumpCartBadge() {
+    barCount.style.transform = "scale(1.3)";
+    setTimeout(function () { barCount.style.transform = "scale(1)"; }, 180);
+  }
+  barCount.style.transition = "transform 0.18s";
+
+  cartToggle.addEventListener("click", function () {
+    cartPanel.classList.toggle("is-open");
+  });
+
+  // ---------- order type ----------
+
+  document.querySelectorAll(".order-type button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".order-type button").forEach(function (b) { b.classList.remove("is-active"); });
+      btn.classList.add("is-active");
+      state.orderType = btn.dataset.order;
+    });
+  });
+
+  // ---------- checkout ----------
+
+  var modalVeil = document.getElementById("modal-veil");
+  var modalBody = document.getElementById("modal-body");
+  var checkoutOrderNumber = null;
+  var checkoutTimer = null;
+
+  function clearCheckoutTimer() {
+    if (checkoutTimer) {
+      clearTimeout(checkoutTimer);
+      checkoutTimer = null;
+    }
+  }
+
+  function openCheckout() {
+    if (!state.cart.length) return;
+    checkoutOrderNumber = String(Math.floor(Math.random() * 900) + 100);
+    modalVeil.classList.add("is-open");
+    showMethodStep();
+  }
+
+  function closeCheckout() {
+    clearCheckoutTimer();
+    modalVeil.classList.remove("is-open");
+  }
+
+  function modalTopbar() {
+    return '<div class="modal-topbar">' +
+      '<button type="button" class="modal-icon-btn" id="modal-back" aria-label="이전 단계">' +
+        '<svg><use href="#icon-arrow-left"/></svg>' +
+      '</button>' +
+      '<button type="button" class="modal-icon-btn" id="modal-close" aria-label="닫기">' +
+        '<svg><use href="#icon-x"/></svg>' +
+      '</button>' +
+    '</div>';
+  }
+
+  function bindTopbar(onBack) {
+    document.getElementById("modal-close").addEventListener("click", closeCheckout);
+    document.getElementById("modal-back").addEventListener("click", onBack || closeCheckout);
+  }
+
+  function payMethodBtn(method, icon, name, hint) {
+    return '<button type="button" class="pay-method-btn" data-method="' + method + '">' +
+      '<span class="pay-method-btn__icon"><svg><use href="#' + icon + '"/></svg></span>' +
+      '<span class="pay-method-btn__text"><span class="name">' + name + '</span><span class="hint">' + hint + '</span></span>' +
+    '</button>';
+  }
+
+  function showMethodStep() {
+    clearCheckoutTimer();
+    var total = cartTotal();
+
+    modalBody.className = "modal modal--method";
+    modalBody.innerHTML =
+      modalTopbar() +
+      '<div class="modal-title display">결제 수단을 선택해주세요</div>' +
+      '<div class="modal-total">결제 금액 <b class="num">' + won(total) + "</b></div>" +
+      '<div class="pay-methods">' +
+        payMethodBtn("card", "icon-card", "카드", "신용·체크카드로 결제") +
+        payMethodBtn("cash", "icon-cash", "현금", "지폐를 넣어서 결제") +
+        payMethodBtn("qr", "icon-qr", "간편결제", "QR코드를 휴대폰으로 스캔") +
+      "</div>";
+
+    bindTopbar(closeCheckout);
+    modalBody.querySelectorAll("[data-method]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var method = btn.dataset.method;
+        if (method === "card") showCardStep();
+        else if (method === "cash") showCashStep();
+        else if (method === "qr") showQrStep();
+      });
+    });
+  }
+
+  function showCardStep() {
+    clearCheckoutTimer();
+    modalBody.className = "modal modal--processing";
+    modalBody.innerHTML = modalTopbar() + '<div class="spinner"></div><p class="processing-label">카드를 인식하고 있어요…</p>';
+    bindTopbar(showMethodStep);
+    checkoutTimer = setTimeout(function () { finishPayment("카드", {}); }, 1100);
+  }
+
+  function showCashStep() {
+    clearCheckoutTimer();
+    var total = cartTotal();
+    var inserted = 0;
+
+    function renderCash() {
+      var remaining = Math.max(0, total - inserted);
+      var change = Math.max(0, inserted - total);
+      var met = inserted >= total;
+
+      modalBody.className = "modal modal--cash";
+      modalBody.innerHTML =
+        modalTopbar() +
+        '<div class="modal-title display">현금 결제</div>' +
+        '<div class="cash-total">' +
+          '<div class="cash-total-row"><span>결제 금액</span><b class="num">' + won(total) + "</b></div>" +
+          '<div class="cash-total-row"><span>투입 금액</span><b class="num">' + won(inserted) + "</b></div>" +
+          '<div class="cash-total-row remaining' + (met ? " is-met" : "") + '"><span>' + (met ? "거스름돈" : "남은 금액") + '</span><b class="num">' + won(met ? change : remaining) + "</b></div>" +
+        "</div>" +
+        '<div class="bill-grid">' +
+          [1000, 5000, 10000, 50000].map(function (v) {
+            return '<button type="button" class="bill-btn" data-bill="' + v + '"><svg><use href="#icon-cash"/></svg><span class="num">' + v.toLocaleString("ko-KR") + '원</span><small>넣기</small></button>';
+          }).join("") +
+        "</div>" +
+        '<div class="cash-actions">' +
+          '<button type="button" class="ghost-btn" id="cash-reset">다시 넣기</button>' +
+          '<button type="button" class="pay-btn" id="cash-confirm" style="flex:1"' + (met ? "" : " disabled") + '><svg><use href="#icon-check"/></svg>결제 완료</button>' +
+        "</div>";
+
+      bindTopbar(showMethodStep);
+      modalBody.querySelectorAll("[data-bill]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          inserted += parseInt(btn.dataset.bill, 10);
+          renderCash();
+        });
+      });
+      document.getElementById("cash-reset").addEventListener("click", function () {
+        inserted = 0;
+        renderCash();
+      });
+      if (met) {
+        document.getElementById("cash-confirm").addEventListener("click", function () {
+          finishPayment("현금", { received: inserted, change: change });
+        });
+      }
+    }
+
+    renderCash();
+  }
+
+  function showQrStep() {
+    clearCheckoutTimer();
+    var total = cartTotal();
+    var payUrl = BASE_URL + "?pay=1&total=" + total + "&order=" + checkoutOrderNumber;
+
+    modalBody.className = "modal modal--qr";
+    modalBody.innerHTML =
+      modalTopbar() +
+      '<div class="modal-title display">간편결제 (QR)</div>' +
+      '<div class="modal-total">결제 금액 <b class="num">' + won(total) + "</b></div>" +
+      '<div class="qr-frame" id="qr-frame"></div>' +
+      '<div class="qr-status"><span class="dot-spin"></span>휴대폰으로 QR코드를 비춰 결제해보세요</div>' +
+      '<button type="button" class="pay-btn" id="qr-confirm" style="width:100%"><svg><use href="#icon-check"/></svg>결제 완료 확인</button>';
+
+    bindTopbar(showMethodStep);
+
+    var qrFrame = document.getElementById("qr-frame");
+    try {
+      if (typeof QRCode !== "undefined") {
+        new QRCode(qrFrame, {
+          text: payUrl,
+          width: 168,
+          height: 168,
+          colorDark: "#2b2420",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        qrFrame.textContent = "QR코드를 불러올 수 없어요";
+      }
+    } catch (err) {
+      qrFrame.textContent = "QR코드를 불러올 수 없어요";
+    }
+
+    document.getElementById("qr-confirm").addEventListener("click", function () {
+      finishPayment("간편결제(QR)", {});
+    });
+
+    // Kiosks don't wait forever on a simple-pay tap — auto-continue after
+    // a few seconds, same as tapping the confirm button.
+    checkoutTimer = setTimeout(function () { finishPayment("간편결제(QR)", {}); }, 6000);
+  }
+
+  function finishPayment(methodLabel, extra) {
+    clearCheckoutTimer();
+    var receiptLines = state.cart.map(function (l) { return { name: l.name, temp: l.temp, qty: l.qty, sum: l.unitPrice * l.qty }; });
+    var total = cartTotal();
+    var orderTypeLabel = state.orderType === "dine" ? "매장" : "포장";
+
+    modalBody.className = "modal modal--success";
+    var rows = receiptLines.map(function (l) {
+      var tag = tempLabel(l.temp);
+      return '<div class="receipt__row"><span>' + l.name + (tag ? " (" + tag + ")" : "") + " ×" + l.qty + '</span><span class="num">' + won(l.sum) + "</span></div>";
+    }).join("");
+
+    var extraRows = "";
+    if (extra && typeof extra.received === "number") {
+      extraRows =
+        '<div class="receipt__row"><span>받은 금액</span><span class="num">' + won(extra.received) + "</span></div>" +
+        '<div class="receipt__row"><span>거스름돈</span><span class="num">' + won(extra.change) + "</span></div>";
+    }
+
+    modalBody.innerHTML =
+      '<div class="check"><svg><use href="#icon-check"/></svg></div>' +
+      '<div class="display">결제가 완료되었습니다</div>' +
+      '<div class="order-number display num">' + checkoutOrderNumber + "</div>" +
+      '<div class="order-number-label">주문번호 · ' + orderTypeLabel + " · " + methodLabel + "</div>" +
+      '<div class="receipt">' + rows + extraRows + '<div class="receipt__row total"><span>총 결제금액</span><span class="num">' + won(total) + "</span></div></div>" +
+      '<button type="button" class="new-order-btn" id="new-order-btn">새 주문 시작하기</button>';
+
+    document.getElementById("new-order-btn").addEventListener("click", function () {
+      state.cart = [];
+      renderCart();
+      cartPanel.classList.remove("is-open");
+      modalVeil.classList.remove("is-open");
+    });
+  }
+
+  payBtn.addEventListener("click", openCheckout);
+
+  // ---------- init ----------
+
+  renderMenu();
+  renderCart();
+})();
+</script>
