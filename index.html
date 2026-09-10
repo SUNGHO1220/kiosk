@@ -1,4 +1,4 @@
-<title>카페 울공 키오스크</title>
+<title>OO카페 키오스크</title>
 <style>
   /* This page renders a single, fixed device screen — like a real kiosk,
      it does not follow the viewer's OS light/dark setting. Colors are
@@ -72,9 +72,17 @@
   .stage {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 12px;
     padding: clamp(14px, 3vw, 40px);
+  }
+
+  .credit-footer {
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
   }
 
   .kiosk {
@@ -87,7 +95,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: min(800px, calc(100vh - 40px));
+    height: min(800px, calc(100vh - 76px));
   }
 
   /* ---------- header ---------- */
@@ -131,6 +139,39 @@
     margin: 4px 0 0;
     font-size: 0.82rem;
     color: rgba(255,255,255,0.65);
+  }
+
+  .brand-edit-btn {
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.75);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .brand-edit-btn:hover { background: rgba(255,255,255,0.25); color: var(--paper); }
+  .brand-edit-btn svg { width: 15px; height: 15px; }
+
+  .name-edit-input {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    margin-top: 4px;
+  }
+
+  .name-edit-input:focus {
+    outline: none;
+    border-color: var(--gold);
   }
 
   .order-type {
@@ -1225,6 +1266,10 @@
       <path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/>
       <path d="M15.5 10l4 4M19.5 10l-4 4"/>
     </symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 15.5V20Z"/>
+      <path d="M14 6l4 4"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -1235,9 +1280,12 @@
       <div class="brand">
         <div class="brand__mark"><svg><use href="#icon-cafe"/></svg></div>
         <div class="brand__text">
-          <div class="display">카페 울공</div>
+          <div class="display" id="brand-name">OO카페</div>
           <p>메뉴를 골라 담고, 결제까지 해보세요</p>
         </div>
+        <button type="button" class="brand-edit-btn" id="brand-edit-btn" aria-label="카페 이름 바꾸기">
+          <svg><use href="#icon-edit"/></svg>
+        </button>
       </div>
       <div class="header-actions">
         <div class="order-type" role="group" aria-label="주문 방식">
@@ -1321,6 +1369,7 @@
       <svg><use href="#icon-bell"/></svg>직원을 호출했어요. 잠시만 기다려주세요!
     </div>
   </div>
+  <div class="credit-footer">제작 · 소다율T</div>
 </div>
 </div>
 
@@ -1328,7 +1377,7 @@
   <div class="stage">
     <div class="modal phone-card">
       <div class="brand__mark" style="margin:0 auto 14px"><svg><use href="#icon-cafe"/></svg></div>
-      <div class="display" style="font-size:1.4rem">카페 울공</div>
+      <div class="display" id="phone-brand-name" style="font-size:1.4rem">OO카페</div>
       <p class="phone-card__sub">간편결제 확인</p>
 
       <div id="phone-pending">
@@ -1350,6 +1399,7 @@
         <p class="phone-card__sub">유효한 결제 정보를 찾을 수 없어요.<br>키오스크에서 QR코드를 다시 확인해주세요.</p>
       </div>
     </div>
+    <div class="credit-footer">제작 · 소다율T</div>
   </div>
 </div>
 
@@ -1369,6 +1419,32 @@
   var phoneRoot = document.getElementById("phone-root");
   var searchParams = new URLSearchParams(window.location.search);
 
+  // Each teacher can rename the shop from the kiosk screen itself (pencil
+  // icon next to the name) — no code editing needed. The choice is saved
+  // per-browser via localStorage, and travels along with the QR link so a
+  // student's phone shows the same name even though it's a different device.
+  var DEFAULT_CAFE_NAME = "OO카페";
+  var CAFE_NAME_KEY = "cafeKioskName";
+
+  function loadSavedCafeName() {
+    try {
+      var saved = window.localStorage.getItem(CAFE_NAME_KEY);
+      return saved && saved.trim() ? saved.trim() : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function saveCafeName(name) {
+    try { window.localStorage.setItem(CAFE_NAME_KEY, name); } catch (err) { /* storage unavailable — keep going without saving */ }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   // A QR code generated on the kiosk links back to this SAME page with
   // ?pay=1, so scanning it opens a self-contained payment-confirmation
   // screen — no server or account needed, the order details travel in
@@ -1379,13 +1455,66 @@
   }
   kioskRoot.style.display = "contents";
 
+  var cafeName = loadSavedCafeName() || DEFAULT_CAFE_NAME;
+
+  function applyCafeName(name) {
+    document.title = name + " 키오스크";
+    var brandNameEl = document.getElementById("brand-name");
+    if (brandNameEl) brandNameEl.textContent = name;
+  }
+
+  applyCafeName(cafeName);
+
+  function openNameEdit() {
+    var veil = document.getElementById("modal-veil");
+    var body = document.getElementById("modal-body");
+    veil.classList.add("is-open");
+    body.className = "modal";
+    body.innerHTML =
+      '<div class="modal-topbar" style="justify-content:flex-end">' +
+        '<button type="button" class="modal-icon-btn" id="name-edit-close" aria-label="닫기"><svg><use href="#icon-x"/></svg></button>' +
+      "</div>" +
+      '<div class="modal-title display">카페 이름 바꾸기</div>' +
+      '<div class="modal-total">화면에 보여줄 이름을 입력해주세요</div>' +
+      '<input type="text" id="name-edit-input" class="name-edit-input" maxlength="14" value="' + escapeHtml(cafeName) + '" placeholder="예: 행복카페">' +
+      '<button type="button" class="pay-btn" id="name-edit-save" style="width:100%;margin-top:16px"><svg><use href="#icon-check"/></svg>저장하기</button>';
+
+    function close() { veil.classList.remove("is-open"); }
+    document.getElementById("name-edit-close").addEventListener("click", close);
+
+    var input = document.getElementById("name-edit-input");
+    input.focus();
+    input.select();
+
+    function save() {
+      var value = input.value.trim();
+      if (!value) value = DEFAULT_CAFE_NAME;
+      cafeName = value;
+      saveCafeName(value);
+      applyCafeName(value);
+      close();
+    }
+    document.getElementById("name-edit-save").addEventListener("click", save);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") save();
+    });
+  }
+
+  document.getElementById("brand-edit-btn").addEventListener("click", openNameEdit);
+
   function initPhoneView() {
     phoneRoot.style.display = "block";
     var total = parseInt(searchParams.get("total"), 10);
     var order = searchParams.get("order");
+    var nameParam = searchParams.get("name");
+    var displayName = nameParam && nameParam.trim() ? nameParam.trim() : DEFAULT_CAFE_NAME;
     var pendingEl = document.getElementById("phone-pending");
     var doneEl = document.getElementById("phone-done");
     var invalidEl = document.getElementById("phone-invalid");
+
+    document.title = displayName + " · 간편결제";
+    var phoneBrandEl = document.getElementById("phone-brand-name");
+    if (phoneBrandEl) phoneBrandEl.textContent = displayName;
 
     if (!total || !order) {
       pendingEl.hidden = true;
@@ -2088,7 +2217,7 @@
   function showQrStep() {
     clearCheckoutTimer();
     var total = cartTotal();
-    var payUrl = BASE_URL + "?pay=1&total=" + total + "&order=" + checkoutOrderNumber;
+    var payUrl = BASE_URL + "?pay=1&total=" + total + "&order=" + checkoutOrderNumber + "&name=" + encodeURIComponent(cafeName);
 
     modalBody.className = "modal modal--qr";
     modalBody.innerHTML =
